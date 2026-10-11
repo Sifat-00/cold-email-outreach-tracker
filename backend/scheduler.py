@@ -208,7 +208,10 @@ def _push_check_job():
     try:
         if push.has_pending_notifications():
             log.info("Push notification detected — running immediate sync")
-            run_sync()
+            result = run_sync()
+            if result.get("skipped") or result.get("errors"):
+                log.warning("Push notification kept pending because sync did not complete cleanly")
+                return
             push.mark_notifications_processed()
     except Exception as e:  # noqa: BLE001
         log.warning("Push check failed: %s", e)
