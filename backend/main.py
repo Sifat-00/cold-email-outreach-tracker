@@ -3,6 +3,7 @@ import os
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
+from typing import Optional
 
 # Local OAuth over http://localhost and tolerate Google returning scopes in a different order.
 os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")

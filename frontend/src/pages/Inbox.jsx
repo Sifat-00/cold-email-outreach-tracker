@@ -9,6 +9,7 @@ import {
 import Spinner from "../components/Spinner.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import StatusBadge from "../components/StatusBadge.jsx";
+import { api } from "../lib/api.js";
 import { cleanHtmlQuotes, fmtDate, fmtDateTime, fmtShort } from "../lib/format.js";
 
 const VIEWS = [
@@ -72,12 +73,20 @@ function EmailFrame({ html }) {
        img{max-width:100%;height:auto}
        blockquote, .gmail_quote{margin:12px 0 0 4px;padding-left:12px;border-left:2px solid #3a3a55;color:#94a3b8;font-size:13px}
        pre{white-space:pre-wrap;font-family:inherit}
-       a{color:#a78bfa;text-decoration:underline}`
+       a{color:#a78bfa;text-decoration:underline}
+       .quote-details{margin:10px 0 0}
+       .quote-summary{cursor:pointer;color:#94a3b8;font-size:12px;font-family:inherit;list-style:none;padding:4px 0}
+       .quote-summary::-webkit-details-marker{display:none}
+       .quote-content{margin:6px 0 0 8px;padding-left:12px;border-left:2px solid #3a3a55;color:#94a3b8;font-size:13px}`
     : `body{margin:0;padding:16px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.6;color:#1e293b;background:#ffffff;word-wrap:break-word}
        img{max-width:100%;height:auto}
        blockquote, .gmail_quote{margin:12px 0 0 4px;padding-left:12px;border-left:2px solid #cbd5e1;color:#64748b;font-size:13px}
        pre{white-space:pre-wrap;font-family:inherit}
-       a{color:#6a35f5;text-decoration:underline}`;
+       a{color:#6a35f5;text-decoration:underline}
+       .quote-details{margin:10px 0 0}
+       .quote-summary{cursor:pointer;color:#64748b;font-size:12px;font-family:inherit;list-style:none;padding:4px 0}
+       .quote-summary::-webkit-details-marker{display:none}
+       .quote-content{margin:6px 0 0 8px;padding-left:12px;border-left:2px solid #cbd5e1;color:#64748b;font-size:13px}`;
 
   const doc = `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>${css}</style></head><body>${html || "<p style='color:#94a3b8'>(no content)</p>"}</body></html>`;
 
@@ -180,7 +189,7 @@ function Message({ m, index = 0, expanded, onToggle }) {
 
       {expanded && (
         <div className="space-y-3 px-4 pb-4 pt-1">
-          <EmailFrame html={m.html} />
+          <EmailFrame html={isClientReply ? cleanHtmlQuotes(m.html) : m.html} />
           {m.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {m.attachments.map((a) => (
