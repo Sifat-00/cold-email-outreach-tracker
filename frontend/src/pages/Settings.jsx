@@ -5,6 +5,7 @@ import { CalendarDays, ExternalLink, FileSpreadsheet, Globe, LogOut, Mail, Plus,
 import PageHeader from "../components/PageHeader.jsx";
 import Spinner from "../components/Spinner.jsx";
 import { api } from "../lib/api.js";
+import { useNotificationPermission } from "../lib/notify.js";
 
 function Section({ icon: Icon, title, description, children, index = 0 }) {
   return (
@@ -35,6 +36,7 @@ export default function Settings({ auth, onAuthChange }) {
   const [pushStatus, setPushStatus] = useState(null);
   const [topicName, setTopicName] = useState("");
   const [pushBusy, setPushBusy] = useState(false);
+  const [notificationPermission, requestNotificationPermission] = useNotificationPermission();
 
   const loadPush = () =>
     api.pushStatus().then((p) => {
@@ -157,6 +159,23 @@ export default function Settings({ auth, onAuthChange }) {
                 <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Active — watching for new emails</span>
               </div>
               <p className="break-all text-xs text-slate-500 dark:text-slate-400">Topic: {pushStatus.topic}</p>
+              {notificationPermission === "granted" ? (
+                <p className="rounded-xl bg-sky-500/10 px-4 py-3 text-sm text-sky-700 dark:text-sky-300">
+                  Desktop alerts are enabled for new replies and bounced emails.
+                </p>
+              ) : notificationPermission === "denied" ? (
+                <p className="rounded-xl bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                  Desktop alerts are blocked. Allow notifications for this site in your browser settings.
+                </p>
+              ) : notificationPermission === "unsupported" ? (
+                <p className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-500 dark:bg-ink-850 dark:text-slate-400">
+                  This browser does not support desktop alerts.
+                </p>
+              ) : (
+                <button className="btn-ghost w-full" onClick={requestNotificationPermission}>
+                  <Bell className="h-4 w-4" /> Enable desktop alerts
+                </button>
+              )}
               <button className="btn-ghost w-full" disabled={pushBusy} onClick={disablePush}>
                 {pushBusy ? <Spinner className="h-4 w-4" /> : <Bell className="h-4 w-4" />} Stop push notifications
               </button>
