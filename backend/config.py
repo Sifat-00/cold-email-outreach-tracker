@@ -49,6 +49,14 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 SYNC_INTERVAL_SECONDS = 60
 OPEN_IGNORE_WINDOW_SECONDS = 20
 
+# Supabase config for Gmail push notifications
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL") or DATABASE_URL
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+# Pub/Sub topic for Gmail push notifications (set by user in Settings)
+PUSH_TOPIC_NAME = os.getenv("GMAIL_PUSH_TOPIC", "")
+
 DEFAULT_CONFIG = {
     "sheet_id": None,
     "sheet_url": None,

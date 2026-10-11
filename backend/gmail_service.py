@@ -59,6 +59,22 @@ def clear_profile_cache():
     _profile_cache.clear()
 
 
+def setup_watch(topic_name: str) -> dict:
+    """Start watching the inbox for push notifications via Google Pub/Sub.
+    Returns the watch response containing historyId and expiration."""
+    service = gmail_client()
+    return service.users().watch(
+        userId="me",
+        body={"topicName": topic_name, "labelIds": ["INBOX"]},
+    ).execute()
+
+
+def stop_watch() -> dict:
+    """Stop watching the inbox for push notifications."""
+    service = gmail_client()
+    return service.users().stop(userId="me").execute()
+
+
 def tracking_pixel(backend_url: str, lead_id: int) -> str:
     base = backend_url.rstrip("/")
     return (

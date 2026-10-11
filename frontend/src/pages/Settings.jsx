@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { CalendarDays, ExternalLink, FileSpreadsheet, Globe, LogOut, Mail, Plus, RefreshCw, Save, X } from "lucide-react";
+import { CalendarDays, ExternalLink, FileSpreadsheet, Globe, LogOut, Mail, Plus, RefreshCw, Save, X, Zap, Bell } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
 import Spinner from "../components/Spinner.jsx";
 import { api } from "../lib/api.js";
@@ -32,6 +32,16 @@ export default function Settings({ auth, onAuthChange }) {
   const [days, setDays] = useState([3, 5, 7]);
   const [saving, setSaving] = useState(false);
   const [creatingSheet, setCreatingSheet] = useState(false);
+  const [pushStatus, setPushStatus] = useState(null);
+  const [topicName, setTopicName] = useState("");
+  const [pushBusy, setPushBusy] = useState(false);
+
+  const loadPush = () =>
+    api.pushStatus().then((p) => {
+      setPushStatus(p);
+      setTopicName(p.topic || "");
+      return p;
+    }).catch(() => {});
 
   const load = () =>
     api.settings().then((s) => {
@@ -41,7 +51,7 @@ export default function Settings({ auth, onAuthChange }) {
       return s;
     }).catch((e) => toast.error(e.message));
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadPush(); }, []);
 
   const save = async (e) => {
     e.preventDefault();
@@ -78,6 +88,36 @@ export default function Settings({ auth, onAuthChange }) {
     onAuthChange();
   };
 
+  const enablePush = async () => {
+    if (!topicName.trim()) {
+      toast.error("Enter your Pub/Sub topic name first");
+      return;
+    }
+    setPushBusy(true);
+    try {
+      await api.pushWatch(topicName.trim());
+      toast.success("Push notifications enabled — replies will be detected instantly");
+      loadPush();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const disablePush = async () => {
+    setPushBusy(true);
+    try {
+      await api.pushStop();
+      toast.success("Push notifications stopped");
+      loadPush();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
   if (!settings) return <div className="flex justify-center py-20"><Spinner className="h-8 w-8" /></div>;
 
   return (
@@ -109,8 +149,38 @@ export default function Settings({ auth, onAuthChange }) {
           )}
         </Section>
 
+        <Section icon={Zap} title="Instant reply detection" description="Get notified the moment a lead replies or an email bounces — no polling delay." index={2}>
+          {pushStatus?.active ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-3">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Active — watching for new emails</span>
+              </div>
+              <p className="break-all text-xs text-slate-500 dark:text-slate-400">Topic: {pushStatus.topic}</p>
+              <button className="btn-ghost w-full" disabled={pushBusy} onClick={disablePush}>
+                {pushBusy ? <Spinner className="h-4 w-4" /> : <Bell className="h-4 w-4" />} Stop push notifications
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Enter the Pub/Sub topic name you created in Google Cloud (e.g. <code className="rounded bg-slate-100 px-1 dark:bg-ink-800">projects/your-project/topics/gmail-replies</code>)
+              </p>
+              <input
+                className="input"
+                value={topicName}
+                onChange={(e) => setTopicName(e.target.value)}
+                placeholder="projects/your-project-id/topics/gmail-replies"
+              />
+              <button className="btn-primary w-full" disabled={pushBusy || !topicName.trim()} onClick={enablePush}>
+                {pushBusy ? <Spinner className="h-4 w-4 !text-white" /> : <Zap className="h-4 w-4" />} Enable instant detection
+              </button>
+            </div>
+          )}
+        </Section>
+
         <form onSubmit={save} className="contents">
-          <Section icon={Globe} title="Backend URL (open tracking)" description="Public URL used in the tracking pixel. Paste your ngrok HTTPS URL here." index={2}>
+          <Section icon={Globe} title="Backend URL (open tracking)" description="Public URL used in the tracking pixel. Paste your ngrok HTTPS URL here." index={3}>
             <label className="label" htmlFor="backend">Backend URL</label>
             <input id="backend" className="input" value={backendUrl} onChange={(e) => setBackendUrl(e.target.value)} placeholder="https://xxxx.ngrok-free.app" />
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -119,7 +189,7 @@ export default function Settings({ auth, onAuthChange }) {
             <button className="btn-primary mt-4" disabled={saving}>{saving ? <Spinner className="h-4 w-4 !text-white" /> : <Save className="h-4 w-4" />} Save</button>
           </Section>
 
-          <Section icon={CalendarDays} title="Default follow-up schedule" description="The default follow-ups for every new email, counted in days after sending (Asia/Dhaka). You can change them for a single email on the Compose page." index={3}>
+          <Section icon={CalendarDays} title="Default follow-up schedule" description="The default follow-ups for every new email, counted in days after sending (Asia/Dhaka). You can change them for a single email on the Compose page." index={4}>
             {days.length === 0 && (
               <p className="mb-3 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-500 dark:bg-ink-850 dark:text-slate-400">No automatic follow-ups. You can still add them per lead on the Follow-ups page.</p>
             )}

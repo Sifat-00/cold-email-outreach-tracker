@@ -62,4 +62,7 @@ export const api = {
     request(`/api/suppressions?email=${encodeURIComponent(email)}&reason=${encodeURIComponent(reason)}`, { method: "POST" }),
   deleteSuppression: (id) => request(`/api/suppressions/${id}`, { method: "DELETE" }),
   syncLogs: (limit = 20) => request(`/api/sync/logs?limit=${limit}`),
+  pushStatus: () => request("/api/push/status"),
+  pushWatch: (topicName) => request("/api/push/watch", { method: "POST", body: { topic_name: topicName } }),
+  pushStop: () => request("/api/push/stop", { method: "POST" }),
 };

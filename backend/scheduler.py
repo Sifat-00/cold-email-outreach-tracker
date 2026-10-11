@@ -4,6 +4,7 @@ import threading
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import gmail_service as gmail
+import push_notifications as push
 import sheets_service as sheets
 from config import SYNC_INTERVAL_SECONDS, load_config, save_config
 from database import SessionLocal
@@ -202,12 +203,26 @@ def _job():
         log.warning("Background sync failed: %s", e)
 
 
+def _push_check_job():
+    """Quick check for pending push notifications. Triggers an immediate sync if any are found."""
+    try:
+        if push.has_pending_notifications():
+            log.info("Push notification detected — running immediate sync")
+            run_sync()
+            push.mark_notifications_processed()
+    except Exception as e:  # noqa: BLE001
+        log.warning("Push check failed: %s", e)
+
+
 def start_scheduler():
     if not scheduler.running:
         scheduler.add_job(_job, "interval", seconds=SYNC_INTERVAL_SECONDS, id="gmail_sync",
                           max_instances=1, coalesce=True, replace_existing=True)
+        # Check for push notifications every 5 seconds for near-instant reply detection
+        scheduler.add_job(_push_check_job, "interval", seconds=5, id="push_check",
+                          max_instances=1, coalesce=True, replace_existing=True)
         scheduler.start()
-        log.info("Background sync scheduled every %ss", SYNC_INTERVAL_SECONDS)
+        log.info("Background sync scheduled every %ss, push check every 5s", SYNC_INTERVAL_SECONDS)
 
 
 def stop_scheduler():

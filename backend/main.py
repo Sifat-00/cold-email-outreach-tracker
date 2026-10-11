@@ -22,6 +22,7 @@ from config import (  # noqa: E402
     credentials_path, load_config, save_config,
 )
 from database import get_db, init_db  # noqa: E402
+import push_notifications as push  # noqa: E402
 from inbox import router as inbox_router  # noqa: E402
 from models import (  # noqa: E402
     Campaign, CampaignCreateRequest, EmailMessage, EmailOpen, Event, Followup,
@@ -661,6 +662,44 @@ def lead_history(lead_id: int, db: Session = Depends(get_db)):
 def sync():
     require_gmail()
     return run_sync()
+
+
+@app.post("/api/push/watch")
+def setup_push_watch(req: dict):
+    """Start Gmail push notifications by setting up a watch on the inbox."""
+    require_gmail()
+    topic_name = (req or {}).get("topic_name", "").strip()
+    if not topic_name:
+        raise HTTPException(status_code=400, detail="topic_name is required (e.g. projects/my-project/topics/gmail-replies)")
+    try:
+        result = gmail.setup_watch(topic_name)
+        save_config({"push_topic": topic_name, "push_active": True})
+        return {"ok": True, "historyId": result.get("historyId"), "expiration": result.get("expiration")}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Failed to setup watch: {gmail.friendly_google_error(e)}")
+
+
+@app.post("/api/push/stop")
+def stop_push_watch():
+    """Stop Gmail push notifications."""
+    require_gmail()
+    try:
+        gmail.stop_watch()
+        save_config({"push_active": False})
+        return {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Failed to stop watch: {gmail.friendly_google_error(e)}")
+
+
+@app.get("/api/push/status")
+def push_status():
+    """Check if push notifications are active and if there are pending notifications."""
+    cfg = load_config()
+    return {
+        "active": cfg.get("push_active", False),
+        "topic": cfg.get("push_topic"),
+        "pending_notifications": push.has_pending_notifications() if gmail.is_connected() else False,
+    }
 
 
 @app.get("/api/sync/logs")
