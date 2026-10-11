@@ -1,0 +1,13 @@
+credentials*.json
+token*.json
+config.json
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.env*
+.venv/
+venv/
